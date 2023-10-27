@@ -3,18 +3,15 @@
  */
 import React, { PureComponent, ReactElement, SVGProps } from 'react';
 import clsx from 'clsx';
-import Animate from 'react-smooth';
 import isFunction from 'lodash/isFunction';
 import max from 'lodash/max';
 import isNil from 'lodash/isNil';
-import isNan from 'lodash/isNaN';
-import isEqual from 'lodash/isEqual';
 import { Curve, CurveType, Point as CurvePoint } from '../shape/Curve';
 import { Dot, Props as DotProps } from '../shape/Dot';
 import { Layer } from '../container/Layer';
 import { LabelList } from '../component/LabelList';
 import { Global } from '../util/Global';
-import { isNumber, uniqueId, interpolateNumber } from '../util/DataUtils';
+import { isNumber, uniqueId } from '../util/DataUtils';
 import { getCateCoordinateOfLine, getValueByDataKey } from '../util/ChartUtils';
 import { Props as XAxisProps } from './XAxis';
 import { Props as YAxisProps } from './YAxis';
@@ -412,7 +409,7 @@ export class Area extends PureComponent<Props, State> {
     const { layout, type, stroke, connectNulls, isRange, ref, ...others } = this.props;
 
     return (
-      <Layer clipPath={needClip ? `url(#clipPath-${clipPathId})` : null}>
+      <Layer id="animationTest" clipPath={needClip ? `url(#clipPath-${clipPathId})` : null}>
         <Curve
           {...filterProps(others, true)}
           points={points}
@@ -449,93 +446,8 @@ export class Area extends PureComponent<Props, State> {
     );
   }
 
-  renderAreaWithAnimation(needClip: boolean, clipPathId: string) {
-    const { points, baseLine, isAnimationActive, animationBegin, animationDuration, animationEasing, animationId } =
-      this.props;
-    const { prevPoints, prevBaseLine } = this.state;
-    // const clipPathId = isNil(id) ? this.id : id;
-
-    return (
-      <Animate
-        begin={animationBegin}
-        duration={animationDuration}
-        isActive={isAnimationActive}
-        easing={animationEasing}
-        from={{ t: 0 }}
-        to={{ t: 1 }}
-        key={`area-${animationId}`}
-        onAnimationEnd={this.handleAnimationEnd}
-        onAnimationStart={this.handleAnimationStart}
-      >
-        {({ t }: { t: number }) => {
-          if (prevPoints) {
-            const prevPointsDiffFactor = prevPoints.length / points.length;
-            // update animtaion
-            const stepPoints = points.map((entry, index) => {
-              const prevPointIndex = Math.floor(index * prevPointsDiffFactor);
-              if (prevPoints[prevPointIndex]) {
-                const prev = prevPoints[prevPointIndex];
-                const interpolatorX = interpolateNumber(prev.x, entry.x);
-                const interpolatorY = interpolateNumber(prev.y, entry.y);
-
-                return { ...entry, x: interpolatorX(t), y: interpolatorY(t) };
-              }
-
-              return entry;
-            });
-            let stepBaseLine;
-
-            if (isNumber(baseLine) && typeof baseLine === 'number') {
-              const interpolator = interpolateNumber(prevBaseLine as number, baseLine);
-              stepBaseLine = interpolator(t);
-            } else if (isNil(baseLine) || isNan(baseLine)) {
-              const interpolator = interpolateNumber(prevBaseLine as number, 0);
-              stepBaseLine = interpolator(t);
-            } else {
-              stepBaseLine = (baseLine as Coordinate[]).map((entry, index) => {
-                const prevPointIndex = Math.floor(index * prevPointsDiffFactor);
-                if ((prevBaseLine as Coordinate[])[prevPointIndex]) {
-                  const prev = (prevBaseLine as Coordinate[])[prevPointIndex];
-                  const interpolatorX = interpolateNumber(prev.x, entry.x);
-                  const interpolatorY = interpolateNumber(prev.y, entry.y);
-
-                  return { ...entry, x: interpolatorX(t), y: interpolatorY(t) };
-                }
-
-                return entry;
-              });
-            }
-
-            return this.renderAreaStatically(stepPoints, stepBaseLine, needClip, clipPathId);
-          }
-
-          return (
-            <Layer>
-              <defs>
-                <clipPath id={`animationClipPath-${clipPathId}`}>{this.renderClipRect(t)}</clipPath>
-              </defs>
-              <Layer clipPath={`url(#animationClipPath-${clipPathId})`}>
-                {this.renderAreaStatically(points, baseLine, needClip, clipPathId)}
-              </Layer>
-            </Layer>
-          );
-        }}
-      </Animate>
-    );
-  }
-
   renderArea(needClip: boolean, clipPathId: string) {
-    const { points, baseLine, isAnimationActive } = this.props;
-    const { prevPoints, prevBaseLine, totalLength } = this.state;
-
-    if (
-      isAnimationActive &&
-      points &&
-      points.length &&
-      ((!prevPoints && totalLength > 0) || !isEqual(prevPoints, points) || !isEqual(prevBaseLine, baseLine))
-    ) {
-      return this.renderAreaWithAnimation(needClip, clipPathId);
-    }
+    const { points, baseLine } = this.props;
 
     return this.renderAreaStatically(points, baseLine, needClip, clipPathId);
   }
@@ -560,6 +472,22 @@ export class Area extends PureComponent<Props, State> {
 
     return (
       <Layer className={layerClass}>
+        <style>
+          {`
+@keyframes wipe-in-right {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+#animationTest {
+    animation: 1s ease wipe-in-right both;
+}
+`}
+        </style>
         {needClipX || needClipY ? (
           <defs>
             <clipPath id={`clipPath-${clipPathId}`}>

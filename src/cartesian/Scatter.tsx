@@ -2,10 +2,8 @@
  * @fileOverview Render a group of scatters
  */
 import React, { PureComponent, ReactElement } from 'react';
-import Animate from 'react-smooth';
 
 import isNil from 'lodash/isNil';
-import isEqual from 'lodash/isEqual';
 import isFunction from 'lodash/isFunction';
 import clsx from 'clsx';
 import { Layer } from '../container/Layer';
@@ -16,7 +14,7 @@ import { ZAxis, Props as ZAxisProps } from './ZAxis';
 import { Curve, Props as CurveProps, CurveType } from '../shape/Curve';
 import { ErrorBar, Props as ErrorBarProps } from './ErrorBar';
 import { Cell } from '../component/Cell';
-import { uniqueId, interpolateNumber, getLinearRegression } from '../util/DataUtils';
+import { uniqueId, getLinearRegression } from '../util/DataUtils';
 import { getValueByDataKey, getCateCoordinateOfLine } from '../util/ChartUtils';
 import {
   LegendType,
@@ -276,6 +274,7 @@ export class Scatter extends PureComponent<Props, State> {
 
       return (
         <Layer
+          id="animationTest"
           className="recharts-scatter-symbol"
           {...adaptEventsOfChild(this.props, entry, i)}
           key={`symbol-${i}`} // eslint-disable-line react/no-array-index-key
@@ -287,57 +286,8 @@ export class Scatter extends PureComponent<Props, State> {
     });
   }
 
-  renderSymbolsWithAnimation() {
-    const { points, isAnimationActive, animationBegin, animationDuration, animationEasing, animationId } = this.props;
-    const { prevPoints } = this.state;
-
-    return (
-      <Animate
-        begin={animationBegin}
-        duration={animationDuration}
-        isActive={isAnimationActive}
-        easing={animationEasing}
-        from={{ t: 0 }}
-        to={{ t: 1 }}
-        key={`pie-${animationId}`}
-        onAnimationEnd={this.handleAnimationEnd}
-        onAnimationStart={this.handleAnimationStart}
-      >
-        {({ t }: { t: number }) => {
-          const stepData = points.map((entry, index) => {
-            const prev = prevPoints && prevPoints[index];
-
-            if (prev) {
-              const interpolatorCx = interpolateNumber(prev.cx, entry.cx);
-              const interpolatorCy = interpolateNumber(prev.cy, entry.cy);
-              const interpolatorSize = interpolateNumber(prev.size, entry.size);
-
-              return {
-                ...entry,
-                cx: interpolatorCx(t),
-                cy: interpolatorCy(t),
-                size: interpolatorSize(t),
-              };
-            }
-
-            const interpolator = interpolateNumber(0, entry.size);
-
-            return { ...entry, size: interpolator(t) };
-          });
-
-          return <Layer>{this.renderSymbolsStatically(stepData)}</Layer>;
-        }}
-      </Animate>
-    );
-  }
-
   renderSymbols() {
-    const { points, isAnimationActive } = this.props;
-    const { prevPoints } = this.state;
-
-    if (isAnimationActive && points && points.length && (!prevPoints || !isEqual(prevPoints, points))) {
-      return this.renderSymbolsWithAnimation();
-    }
+    const { points } = this.props;
 
     return this.renderSymbolsStatically(points);
   }
@@ -429,6 +379,22 @@ export class Scatter extends PureComponent<Props, State> {
 
     return (
       <Layer className={layerClass} clipPath={needClip ? `url(#clipPath-${clipPathId})` : null}>
+        <style>
+          {`
+@keyframes grow {
+  from {
+    clip-path: inset(100%);
+  }
+  to {
+    clip-path: inset(0);
+  }
+}
+
+.recharts-scatter-symbol {
+    animation: 1s ease grow both;
+}
+`}
+        </style>
         {needClipX || needClipY ? (
           <defs>
             <clipPath id={`clipPath-${clipPathId}`}>

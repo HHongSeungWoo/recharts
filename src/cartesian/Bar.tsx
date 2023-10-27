@@ -3,8 +3,6 @@
  */
 import React, { Key, PureComponent, ReactElement } from 'react';
 import clsx from 'clsx';
-import Animate from 'react-smooth';
-import isEqual from 'lodash/isEqual';
 import isNil from 'lodash/isNil';
 
 import { Props as RectangleProps } from '../shape/Rectangle';
@@ -12,7 +10,7 @@ import { Layer } from '../container/Layer';
 import { ErrorBar, Props as ErrorBarProps, ErrorBarDataPointFormatter } from './ErrorBar';
 import { Cell } from '../component/Cell';
 import { LabelList } from '../component/LabelList';
-import { uniqueId, mathSign, interpolateNumber } from '../util/DataUtils';
+import { uniqueId, mathSign } from '../util/DataUtils';
 import { filterProps, findAllByType } from '../util/ReactUtils';
 import { Global } from '../util/Global';
 import {
@@ -306,6 +304,7 @@ export class Bar extends PureComponent<Props, State> {
         };
         return (
           <Layer
+            id="animationTest"
             className="recharts-bar-rectangle"
             {...adaptEventsOfChild(this.props, entry, i)}
             key={`rectangle-${i}`} // eslint-disable-line react/no-array-index-key
@@ -317,72 +316,8 @@ export class Bar extends PureComponent<Props, State> {
     );
   }
 
-  renderRectanglesWithAnimation() {
-    const { data, layout, isAnimationActive, animationBegin, animationDuration, animationEasing, animationId } =
-      this.props;
-    const { prevData } = this.state;
-
-    return (
-      <Animate
-        begin={animationBegin}
-        duration={animationDuration}
-        isActive={isAnimationActive}
-        easing={animationEasing}
-        from={{ t: 0 }}
-        to={{ t: 1 }}
-        key={`bar-${animationId}`}
-        onAnimationEnd={this.handleAnimationEnd}
-        onAnimationStart={this.handleAnimationStart}
-      >
-        {({ t }: { t: number }) => {
-          const stepData = data.map((entry, index) => {
-            const prev = prevData && prevData[index];
-
-            if (prev) {
-              const interpolatorX = interpolateNumber(prev.x, entry.x);
-              const interpolatorY = interpolateNumber(prev.y, entry.y);
-              const interpolatorWidth = interpolateNumber(prev.width, entry.width);
-              const interpolatorHeight = interpolateNumber(prev.height, entry.height);
-
-              return {
-                ...entry,
-                x: interpolatorX(t),
-                y: interpolatorY(t),
-                width: interpolatorWidth(t),
-                height: interpolatorHeight(t),
-              };
-            }
-
-            if (layout === 'horizontal') {
-              const interpolatorHeight = interpolateNumber(0, entry.height);
-              const h = interpolatorHeight(t);
-
-              return {
-                ...entry,
-                y: entry.y + entry.height - h,
-                height: h,
-              };
-            }
-
-            const interpolator = interpolateNumber(0, entry.width);
-            const w = interpolator(t);
-
-            return { ...entry, width: w };
-          });
-
-          return <Layer>{this.renderRectanglesStatically(stepData)}</Layer>;
-        }}
-      </Animate>
-    );
-  }
-
   renderRectangles() {
-    const { data, isAnimationActive } = this.props;
-    const { prevData } = this.state;
-
-    if (isAnimationActive && data && data.length && (!prevData || !isEqual(prevData, data))) {
-      return this.renderRectanglesWithAnimation();
-    }
+    const { data } = this.props;
 
     return this.renderRectanglesStatically(data);
   }
@@ -479,8 +414,28 @@ export class Bar extends PureComponent<Props, State> {
     const needClip = needClipX || needClipY;
     const clipPathId = isNil(id) ? this.id : id;
 
+    const insets = this.props.layout === 'vertical' ? ['0', '100%', '0', '0'] : ['100%', '0', '0', '0'];
+
+    if ((yAxis as any).domain[0] < 0) {
+      insets[insets.indexOf('100%') + 2] = '100%';
+    }
+
     return (
       <Layer className={layerClass}>
+        <style>
+          {`@keyframes wipe-in-up {
+  from {
+    clip-path: inset(${insets.join(' ')});
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+.recharts-bar-rectangles {
+    animation: 1.5s ease wipe-in-up both;
+}`}
+        </style>
         {needClipX || needClipY ? (
           <defs>
             <clipPath id={`clipPath-${clipPathId}`}>
