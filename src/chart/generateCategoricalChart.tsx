@@ -1063,6 +1063,7 @@ export const generateCategoricalChart = ({
     const { children, layout, stackOffset, data, reverseStackOrder } = props;
     const { numericAxisName, cateAxisName } = getAxisNameByLayout(layout);
     const graphicalItems = findAllByType(children, GraphicalChild);
+    // TODO 문제는 이곳의 data가 nullable 이면 stackGroups이 null 이여서 발생하는 문제이다
     const stackGroups: AxisStackGroups = getStackGroupsByAxisId(
       data,
       graphicalItems,
