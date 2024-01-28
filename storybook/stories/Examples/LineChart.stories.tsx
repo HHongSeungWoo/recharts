@@ -3,6 +3,7 @@ import { expect } from '@storybook/jest';
 import { StoryObj } from '@storybook/react';
 import React, { PureComponent, useState } from 'react';
 import { userEvent, within } from '@storybook/testing-library';
+import moment from 'moment';
 import { Impressions, impressionsData, pageData } from '../data';
 import {
   Line,
@@ -983,6 +984,98 @@ export const HideOnLegendClick: StoryObj = {
 
           <Line hide={activeSeries.includes('uv')} type="monotone" dataKey="uv" stroke="#8884d8" fill="#8884d8" />
           <Line hide={activeSeries.includes('pv')} type="monotone" dataKey="pv" stroke="#987" fill="#8884d8" />
+        </LineChart>
+      </ResponsiveContainer>
+    );
+  },
+};
+
+export const TETST: StoryObj = {
+  render: () => {
+    const data = [
+      { label: 1544914800, current: 19136.2, previous: 413765.7 },
+      { label: 1545001200, current: 122434.7, previous: 2173.1 },
+      { label: 1545087600, current: 0, previous: 102033.8 },
+      { label: 1545174000, current: 0, previous: 0 },
+      { label: 1545260400, current: 318884.6, previous: 0 },
+      { label: 1545346800, current: 0, previous: 0 },
+      { label: 1545433200, current: 1227269.7999999998, previous: 0 },
+      { label: 1545519600, current: 200343.2, previous: 0 },
+      { label: 1545606000, current: 0, previous: 20674.7 },
+      { label: 1545692400, current: 0, previous: 0 },
+      { label: 1545778800, current: 1646.4, previous: 0 },
+      { label: 1545865200, current: 7787.5, previous: 46501 },
+      { label: 1545951600, current: 98499.3, previous: 0 },
+      { label: 1546038000, current: 14157.4, previous: 89138.3 },
+      { label: 1546124400, current: 827472.4999999999, previous: 0 },
+      { label: 1546210800, current: 5694.400000000001, previous: 863144 },
+      { label: 1546297200, current: 30308.8, previous: 0 },
+      { label: 1546383600, current: 581704.4999999999, previous: 0 },
+      { label: 1546470000, current: 181822.6, previous: 9479.7 },
+      { label: 1546556400, current: 2466.4, previous: 0 },
+      { label: 1546642800, current: 173622.4, previous: 0 },
+      { label: 1546729200, current: 108.7, previous: 0 },
+      { label: 1546815600, current: 108670.80000000031, previous: 14418.8 },
+      { label: 1546902000, current: 75642.80000000016, previous: 56550.299999999996 },
+      { label: 1546988400, current: 0, previous: 3288.600000000004 },
+      { label: 1547074800, current: 0, previous: 27205.899999999987 },
+      { label: 1547161200, current: 0, previous: 3231.6 },
+      { label: 1547247600, current: 0, previous: 0 },
+      { label: 1547334000, current: 0, previous: 0 },
+      { label: 1547420400, current: 181822, previous: 0 },
+      { label: 1547506800, current: 0, previous: 232.2 },
+    ];
+    const domainMin =
+      data.length > 1 ? 'auto' : dataMin => moment.unix(dataMin).subtract(5, 'days').startOf('day').unix();
+    const domainMax = data.length > 1 ? 'auto' : dataMax => moment.unix(dataMax).add(5, 'days').startOf('day').unix();
+    const domain = [domainMin, domainMax];
+    const lineParams = {
+      type: 'linear',
+      strokeWidth: 1,
+      legendType: 'none',
+      dot: false,
+      activeDot: false,
+      label: false,
+    };
+    function DefaultXTick(props) {
+      const { x, y, stroke, payload, fill, width, height } = props;
+
+      return (
+        <text
+          x={x}
+          y={y}
+          width={width}
+          height={height}
+          textAnchor="middle"
+          fill={fill}
+          stroke={stroke}
+          className="recharts-text recharts-cartesian-axis-tick-value"
+        >
+          <tspan x={payload.coordinate} dy="0.6em" textAnchor="middle">
+            {moment.unix(payload.value).format('DD')}
+          </tspan>
+          <tspan x={payload.coordinate} dy="1.2em" textAnchor="middle">
+            {moment.unix(payload.value).format('MMM')}
+          </tspan>
+        </text>
+      );
+    }
+
+    return (
+      <ResponsiveContainer>
+        <LineChart data={data} width={0} height={125}>
+          <XAxis
+            scale="time"
+            type="number"
+            domain={domain}
+            dataKey="label"
+            interval="preserveStartEnd"
+            minTickGap={-50}
+            tickLine={false}
+            tick={DefaultXTick}
+          />
+          <YAxis stroke="#ddd" tickLine={false} width={40} />
+          <Line dataKey="current" stroke="#8884d8" fill="#8884d8" strokeDasharray="5 3" />
         </LineChart>
       </ResponsiveContainer>
     );

@@ -156,5 +156,5 @@ export function getTicks(props: CartesianAxisProps, fontSize?: string, letterSpa
     candidates = getTicksEnd(sign, boundaries, getTickSize, ticks, minTickGap);
   }
 
-  return candidates.filter(entry => entry.isShow);
+  return candidates.filter(entry => true);
 }
